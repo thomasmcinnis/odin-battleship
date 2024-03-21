@@ -28,10 +28,14 @@ export default class Gameboard {
      * @param {number} row - Row number of start cell
      * @param {number} col - Column number of start cell
      * @param {boolean} isRow - True if ship orientates right, false if down
-     * @returns {Array<Array<number>>} cells - Array of cells `[row, col]` of placed ship
-     * @throws Will throw error if ship cannot be placed there
+     * @returns {boolean} True if successful, false if impossible
      */
     placeShip(shipIdx, row, col, isRow = true) {
+        // Check agains starting cell being OOB
+        if (row > this.cells.length - 1 || col > this.cells[0].length - 1) {
+            return false;
+        }
+
         const ship = this.ships[shipIdx];
 
         // Check if all the required cells are available
@@ -39,46 +43,80 @@ export default class Gameboard {
         let currCol = col;
         const path = [];
         for (let i = 0; i < ship.size; i++) {
+            if (currRow > 9 || currCol > 9) {
+                return false;
+            }
             if (this.cells[currRow][currCol] !== null) {
-                throw new Error('Not a valid placement');
+                return false;
             }
             path.push([currRow, currCol]);
             isRow ? currCol++ : currRow++;
         }
 
+        // Reference the ship in each cell placed
         for (let i = 0; i < path.length; i++) {
             let [r, c] = path[i];
             this.cells[r][c] = ship;
         }
 
-        return path;
+        return true;
+    }
+
+    #tryPlace(shipIdx) {
+        let placed = false;
+        let tries = [];
+        do {
+            let [r, c] = this.#randomCell();
+            let dir = Math.floor(Math.random() * 2);
+            tries.push([r, c]);
+            placed = this.placeShip(shipIdx, r, c, dir);
+        } while (
+            !placed &&
+            tries.length < this.cells.length * this.cells.length
+        );
+    }
+
+    #randomCell() {
+        let r = Math.floor(Math.random() * 9);
+        let c = Math.floor(Math.random() * 9);
+        return [r, c];
+    }
+
+    /**
+     * Randomly place ships on the board
+     * @returns {boolean} True if complete
+     */
+    randomBoard() {
+        for (let i = 0; i < this.ships.length; i++) {
+            this.#tryPlace(i);
+        }
+        return true;
     }
 
     /**
      * Attack a cell on the board.
-     * @param {number} row - The cell's row
-     * @param {number} col - The cell's column
-     * @returns {boolean} True if valid hit, false if miss
+     * @param {number} r - The row
+     * @param {number} c - The column
+     * @returns {boolean} True hit, false if miss
      * @throws Will throw error if cell already played
      */
-    receiveAttack(row, col) {
+    receiveAttack(r, c) {
         // If the cell is empty record false and return it
-        if (this.cells[row][col] === null) {
-            this.cells[row][col] = false;
-            return this.cells[row][col];
+        if (this.cells[r][c] === null) {
+            this.cells[r][c] = false;
+            return this.cells[r][c];
         }
 
         // If the cell contains reference to a ship, use the hit method
-        if (this.cells[row][col] instanceof Ship) {
-            this.cells[row][col].hit();
-            console.log(this.cells[row][col]);
-            console.log(this.cells[row][col + 1]);
-            this.cells[row][col] = true;
-            return this.cells[row][col];
+        // mark the cell as hit and return it
+        if (this.cells[r][c] instanceof Ship) {
+            this.cells[r][c].hit();
+            this.cells[r][c] = true;
+            return this.cells[r][c];
         }
 
         // If cell other than null already throw error
-        if (this.cells[row][col] !== null) {
+        if (this.cells[r][c] !== null) {
             throw new Error('Cell already played');
         }
     }
