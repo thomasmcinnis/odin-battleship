@@ -1,7 +1,7 @@
 import './styles.css';
 
 import Gameboard from './model/board';
-import renderBoard from './view/renderBoard';
+import DisplayManager from './view/displayManager';
 
 const playerBoard = new Gameboard();
 const computerBoard = new Gameboard();
@@ -11,30 +11,30 @@ computerBoard.randomBoard();
 
 const playerUIBoard = document.querySelector('#player>.board');
 const computerUIBoard = document.querySelector('#computer>.board');
-console.log(playerBoard.cells);
+const playerUIShips = document.querySelector('#player>.ships');
+const computerUIShips = document.querySelector('#computer>.ships');
 
-renderBoard(playerBoard.cells, playerUIBoard);
-renderBoard(computerBoard.cells, computerUIBoard);
+const playerUI = new DisplayManager(playerUIBoard, playerUIShips, playerBoard);
+playerUI.renderCells();
+playerUI.renderShipList();
 
-playerBoard.receiveAttack(2, 2);
-renderBoard(playerBoard.cells, playerUIBoard);
+const computerUI = new DisplayManager(
+    computerUIBoard,
+    computerUIShips,
+    computerBoard,
+);
+computerUI.renderCells();
+computerUI.renderShipList();
 
-// When the game starts, we init each board
-// That gets rendered to the screen as empty cells in the respective
-// board divs, and the ships lists are populated
-//
-// At this point we just randomly place ships for both the player and
-// the computer, so that can happen at the same time, but it is a seperate
-// function.
-//
-// Each rendered board-cell gets a data attribute containing its coordinate.
-//
-// Do we just re-use the renderBoard function each round? Or do we only
-// re-render the cell being played?
-//
-// Eg
-//  -   Cell is played, Gameboard notifies subscribers, that calls an updateCell
-//      function.
-//  -   OR, cell is played, if the play is accepted, whole board re-renders
-//
-//  Either way I need the renderBoard function to start with!
+// create listeners for boards to enable making hits
+function handleCellClick(event) {
+    const cell = event.target.closest('[data-point]');
+    if (!cell) return;
+    const point = cell.dataset.point;
+    const [row, col] = point.split(',');
+    playerBoard.receiveAttack(row, col);
+    playerUI.renderCells();
+    playerUI.renderShipList();
+}
+
+playerUIBoard.addEventListener('click', handleCellClick);

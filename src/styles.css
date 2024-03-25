@@ -123,3 +123,7 @@ section {
     width: 300px;
     border: 1px solid hsl(var(--accent));
 }
+
+.sunk {
+    text-decoration: line-through;
+}
